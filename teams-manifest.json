@@ -1,0 +1,37 @@
+{
+  "$schema": "https://developer.microsoft.com/en-us/json-schemas/teams/v1.16/MicrosoftTeams.schema.json",
+  "manifestVersion": "1.16",
+  "version": "1.0.0",
+  "id": "cv-screening-app-abc123",
+  "packageName": "com.company.cvscreening",
+  "developer": {
+    "name": "Your Organization",
+    "websiteUrl": "https://your-company.com",
+    "privacyUrl": "https://your-company.com/privacy",
+    "termsOfUseUrl": "https://your-company.com/terms"
+  },
+  "icons": {
+    "color": "icon-color.png",
+    "outline": "icon-outline.png"
+  },
+  "name": {
+    "short": "CV Screening",
+    "full": "CV Screening Application"
+  },
+  "description": {
+    "short": "Automated CV screening and analysis tool",
+    "full": "Upload and analyze CVs with AI-powered candidate screening capabilities"
+  },
+  "accentColor": "#FFFFFF",
+  "staticTabs": [
+    {
+      "entityId": "cvscreening",
+      "name": "CV Screening",
+      "contentUrl": "https://your-vercel-url.vercel.app",
+      "websiteUrl": "https://your-vercel-url.vercel.app",
+      "scopes": ["personal", "team"]
+    }
+  ],
+  "permissions": ["identity", "messageTeamMembers"],
+  "validDomains": ["your-vercel-url.vercel.app"]
+}
