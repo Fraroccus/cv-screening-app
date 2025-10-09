@@ -5,6 +5,7 @@ import { useDropzone } from 'react-dropzone';
 import { JobRequirements, CVData, UploadResponse, AnalysisResponse } from '@/types';
 import { formatFileSize } from '@/lib/utils';
 import SharePointIntegration from './SharePointIntegration';
+import SharePointURLUpload from './SharePointURLUpload';
 
 interface CVUploadProps {
   jobRequirements: JobRequirements;
@@ -235,6 +236,15 @@ export default function CVUpload({ jobRequirements, onCVUpload, onCVAnalyzed }: 
       {/* SharePoint Integration */}
       <div className="mb-6">
         <SharePointIntegration 
+          jobRequirements={jobRequirements}
+          onCVUpload={onCVUpload}
+          onCVAnalyzed={onCVAnalyzed}
+        />
+      </div>
+
+      {/* SharePoint URL Upload */}
+      <div className="mb-6">
+        <SharePointURLUpload 
           jobRequirements={jobRequirements}
           onCVUpload={onCVUpload}
           onCVAnalyzed={onCVAnalyzed}

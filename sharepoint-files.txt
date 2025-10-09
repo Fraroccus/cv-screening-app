@@ -1,0 +1,14 @@
+# SharePoint CV Files List
+# Add your SharePoint file URLs here (one per line)
+# Example format:
+
+https://yourcompany.sharepoint.com/sites/hr/Shared%20Documents/CVs/john_doe_cv.pdf
+https://yourcompany.sharepoint.com/sites/hr/Shared%20Documents/CVs/jane_smith_resume.pdf
+https://yourcompany.sharepoint.com/sites/hr/Shared%20Documents/CVs/michael_brown_cv.docx
+
+# Instructions:
+# 1. Go to your SharePoint document library
+# 2. Right-click each CV file
+# 3. Select "Copy link"
+# 4. Paste the URL above
+# 5. Use these URLs in the app's SharePoint integration section

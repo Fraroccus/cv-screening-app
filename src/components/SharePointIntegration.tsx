@@ -65,60 +65,41 @@ export default function SharePointIntegration({
   const [error, setError] = useState('');
   const [accessToken, setAccessToken] = useState('');
 
-  // Initialize SharePoint connection
+  // Initialize SharePoint connection using App-Only authentication
   const connectToSharePoint = async () => {
-    if (!msalInstance) {
-      setError('Microsoft Authentication library not available');
-      return;
-    }
-
     setIsLoading(true);
     setError('');
-    setStatus('Connecting to SharePoint...');
+    setStatus('Connecting to SharePoint using App-Only authentication...');
     
     try {
-      // Attempt to acquire token silently first
-      const accounts = msalInstance.getAllAccounts();
-      if (accounts.length > 0) {
-        msalInstance.setActiveAccount(accounts[0]);
+      // Get SharePoint site URL from environment or user input
+      const siteUrl = process.env.NEXT_PUBLIC_SHAREPOINT_SITE_URL || 'https://yourcompany.sharepoint.com/sites/yoursite';
+      
+      // Call our SharePoint App-Only auth API
+      const authResponse = await fetch('/api/sharepoint/auth', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ siteUrl })
+      });
+      
+      if (!authResponse.ok) {
+        const errorData = await authResponse.json();
+        throw new Error(errorData.error || 'Authentication failed');
       }
-
-      const silentRequest = {
-        scopes: GRAPH_SCOPES,
-        account: accounts.length > 0 ? accounts[0] : undefined
-      };
-
-      try {
-        const response = await msalInstance.acquireTokenSilent(silentRequest);
-        setAccessToken(response.accessToken);
-        setIsConnected(true);
-        setStatus('Connected to SharePoint successfully!');
-        
-        // Fetch files after successful connection
-        await fetchSharePointFiles(response.accessToken);
-      } catch (silentError) {
-        // If silent token acquisition fails, trigger interactive login
-        console.log('Silent token acquisition failed, falling back to interactive login');
-        
-        const interactiveRequest = {
-          scopes: GRAPH_SCOPES
-        };
-        
-        try {
-          const response = await msalInstance.acquireTokenPopup(interactiveRequest);
-          setAccessToken(response.accessToken);
-          setIsConnected(true);
-          setStatus('Connected to SharePoint successfully!');
-          
-          // Fetch files after successful connection
-          await fetchSharePointFiles(response.accessToken);
-        } catch (interactiveError) {
-          throw new Error('Failed to authenticate with SharePoint');
-        }
-      }
-    } catch (err) {
-      setError('Failed to connect to SharePoint. Please check your credentials.');
-      console.error('SharePoint connection error:', err);
+      
+      const authData = await authResponse.json();
+      setAccessToken(authData.access_token);
+      setIsConnected(true);
+      setStatus('Connected to SharePoint successfully!');
+      
+      // Fetch files after successful connection
+      await fetchSharePointFiles(authData.access_token);
+      
+    } catch (err: any) {
+      console.error('SharePoint App-Only connection error:', err);
+      setError(`Failed to connect to SharePoint: ${err.message}`);
     } finally {
       setIsLoading(false);
     }
@@ -440,12 +421,12 @@ export default function SharePointIntegration({
           </p>
           
           <div className="bg-blue-50 p-4 rounded-md">
-            <h4 className="font-medium text-blue-900 mb-2">Setup Instructions:</h4>
+            <h4 className="font-medium text-blue-900 mb-2">Setup Instructions (No Admin Required):</h4>
             <ol className="list-decimal list-inside text-sm text-blue-800 space-y-1">
-              <li>Ensure you have a Microsoft 365 account with access to SharePoint</li>
-              <li>Register an application in Azure AD with the required permissions</li>
-              <li>Add your SharePoint Client ID to the environment variables</li>
-              <li>Click "Connect to SharePoint" and authenticate with your Microsoft account</li>
+              <li>Option 1: Use OneDrive sync to access SharePoint files locally</li>
+              <li>Option 2: Ask your IT team to create an Azure AD app registration</li>
+              <li>Option 3: Use direct file URLs from SharePoint (copy link feature)</li>
+              <li>Option 4: Upload files manually from your synced SharePoint folder</li>
             </ol>
           </div>
           
