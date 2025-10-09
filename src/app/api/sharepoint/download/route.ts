@@ -38,30 +38,67 @@ export async function POST(request: NextRequest) {
     const accessToken = authHeader.substring(7); // Remove 'Bearer ' prefix
     console.log(`📥 Downloading file from SharePoint: ${fileName}`);
     
-    // Use SharePoint REST API instead of Microsoft Graph
+    // Initialize Microsoft Graph client
+    const graphClient = Client.init({
+      authProvider: (done) => {
+        done(null, accessToken);
+      }
+    });
+    
     let extractedText = '';
     let fileType = '';
     let fileBuffer: Buffer;
     
     try {
-      // SharePoint REST API call to get file content
-      const fileResponse = await fetch(fileUrl, {
-        headers: {
-          'Authorization': `Bearer ${accessToken}`,
-          'Accept': 'application/json;odata=verbose'
-        }
-      });
+      // Download file from SharePoint using Microsoft Graph API
+      let fileStream;
       
-      if (!fileResponse.ok) {
-        throw new Error(`Failed to download file: ${fileResponse.statusText}`);
+      if (siteId && driveId && itemId) {
+        // Use site, drive, and item IDs if available (more efficient)
+        fileStream = await graphClient
+          .api(`/sites/${siteId}/drives/${driveId}/items/${itemId}/content`)
+          .get();
+      } else {
+        // Fallback to URL-based download
+        // Extract site and file path from SharePoint URL
+        const urlMatch = fileUrl.match(/https:\/\/([^.]+)\.sharepoint\.com\/sites\/([^\/]+)\/(.+)/);
+        if (!urlMatch) {
+          throw new Error('Invalid SharePoint URL format');
+        }
+        
+        const [, tenant, siteName, filePath] = urlMatch;
+        
+        // Get site information
+        const site = await graphClient
+          .api(`/sites/${tenant}.sharepoint.com:/sites/${siteName}`)
+          .get();
+        
+        // Get the default drive
+        const drive = await graphClient
+          .api(`/sites/${site.id}/drive`)
+          .get();
+        
+        // Download the file
+        const decodedPath = decodeURIComponent(filePath);
+        fileStream = await graphClient
+          .api(`/sites/${site.id}/drive/root:/${decodedPath}:/content`)
+          .get();
       }
       
-      // Get file content as buffer
-      const arrayBuffer = await fileResponse.arrayBuffer();
-      fileBuffer = Buffer.from(arrayBuffer);
+      // Convert stream to buffer
+      if (fileStream instanceof ArrayBuffer) {
+        fileBuffer = Buffer.from(fileStream);
+      } else {
+        // Handle other stream types
+        const chunks: Buffer[] = [];
+        for await (const chunk of fileStream) {
+          chunks.push(Buffer.from(chunk));
+        }
+        fileBuffer = Buffer.concat(chunks);
+      }
       
-    } catch (apiError) {
-      console.error('SharePoint REST API error:', apiError);
+    } catch (graphError) {
+      console.error('Microsoft Graph API error:', graphError);
       
       // Fallback to simulated content for development/testing
       console.log('Falling back to simulated content...');

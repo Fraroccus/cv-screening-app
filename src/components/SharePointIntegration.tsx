@@ -11,7 +11,7 @@ const MSAL_CONFIG = {
     authority: process.env.NEXT_PUBLIC_AZURE_TENANT_ID 
       ? `https://login.microsoftonline.com/${process.env.NEXT_PUBLIC_AZURE_TENANT_ID}`
       : 'https://login.microsoftonline.com/common',
-    redirectUri: process.env.NEXT_PUBLIC_SHAREPOINT_REDIRECT_URI || 'http://localhost:3000',
+    redirectUri: process.env.NEXT_PUBLIC_SHAREPOINT_REDIRECT_URI || 'https://cv-screening-app-sand.vercel.app',
   },
   cache: {
     cacheLocation: 'localStorage',
@@ -421,12 +421,12 @@ export default function SharePointIntegration({
           </p>
           
           <div className="bg-blue-50 p-4 rounded-md">
-            <h4 className="font-medium text-blue-900 mb-2">Setup Instructions (No Admin Required):</h4>
+            <h4 className="font-medium text-blue-900 mb-2">Setup Instructions (Admin Required):</h4>
             <ol className="list-decimal list-inside text-sm text-blue-800 space-y-1">
-              <li>Option 1: Use OneDrive sync to access SharePoint files locally</li>
-              <li>Option 2: Ask your IT team to create an Azure AD app registration</li>
-              <li>Option 3: Use direct file URLs from SharePoint (copy link feature)</li>
-              <li>Option 4: Upload files manually from your synced SharePoint folder</li>
+              <li>Admin creates Azure AD app registration with Microsoft Graph permissions</li>
+              <li>App gets Files.Read.All and Sites.Read.All permissions</li>
+              <li>Admin provides Client ID for environment configuration</li>
+              <li>Users authenticate with their Microsoft 365 accounts</li>
             </ol>
           </div>
           
