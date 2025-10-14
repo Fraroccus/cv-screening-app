@@ -26,137 +26,62 @@ export async function POST(request: NextRequest) {
 
     console.log(`📥 Processing SharePoint file: ${fileName} from ${fileUrl}`);
     
-    // For now, return simulated content but with proper structure for real files
-    // This fallback ensures the component works while SharePoint auth is being set up
-    let extractedText = '';
-    let fileType = '';
+    // Determine SharePoint URL type and extract real filename
+    let cleanFileName = fileName;
+    let actualFileUrl = fileUrl;
     
-    if (fileName.toLowerCase().endsWith('.pdf')) {
-      fileType = 'application/pdf';
-      extractedText = simulatePDFContent(fileName);
-    } else if (fileName.toLowerCase().endsWith('.docx')) {
-      fileType = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
-      extractedText = simulateDOCXContent(fileName);
-    } else if (fileName.toLowerCase().endsWith('.txt')) {
-      fileType = 'text/plain';
-      extractedText = simulateTXTContent(fileName);
-    } else {
-      return NextResponse.json({ 
-        error: 'Unsupported file type. Only PDF, DOCX, and TXT files are supported.' 
-      }, { status: 400 });
+    try {
+      const urlObj = new URL(fileUrl);
+      
+      // Type 1: Forms/AllItems.aspx URLs - extract from 'id' parameter
+      if (fileUrl.includes('/Forms/AllItems.aspx')) {
+        const idParam = urlObj.searchParams.get('id');
+        if (idParam) {
+          cleanFileName = decodeURIComponent(idParam.split('/').pop() || fileName);
+          // Convert to direct download URL
+          const baseUrl = `${urlObj.protocol}//${urlObj.hostname}`;
+          actualFileUrl = baseUrl + idParam;
+          console.log(`📋 Converted Forms URL to direct URL: ${actualFileUrl}`);
+        }
+      }
+      // Type 2: Sharing links (:b:/g/ or :f:/g/)
+      else if (fileUrl.includes('/:b:/') || fileUrl.includes('/:f:/')) {
+        console.log('🔗 Detected sharing link format');
+        console.log('⚠️ Sharing links require Microsoft Graph API authentication');
+      }
+      // Type 3: Direct file URLs
+      else {
+        cleanFileName = fileName.split('?')[0];
+      }
+    } catch (urlError) {
+      console.error('Error parsing URL:', urlError);
     }
     
-    console.log(`✅ File processed successfully: ${fileName}`);
+    console.log(`🧹 Cleaned filename: ${cleanFileName}`);
     
-    return NextResponse.json({
-      success: true,
-      fileName: fileName,
-      fileSize: extractedText.length,
-      fileType: fileType,
-      extractedText: extractedText,
-      downloadedAt: new Date().toISOString(),
-      note: 'Using simulated content - real SharePoint integration requires Azure AD setup'
-    });
+    // Return error - real SharePoint integration requires Azure AD authentication
+    return NextResponse.json({ 
+      error: 'SharePoint integration requires Azure AD authentication',
+      details: 'Please work with your admin to set up Azure AD app registration with Microsoft Graph API permissions',
+      suggestions: [
+        '1. Register an Azure AD application',
+        '2. Configure Microsoft Graph API permissions (Files.Read.All)',
+        '3. Add environment variables: NEXT_PUBLIC_AZURE_CLIENT_ID, NEXT_PUBLIC_SHAREPOINT_SITE_URL',
+        '4. Implement authentication flow with MSAL',
+        '5. Alternative: Download files manually and use the regular upload feature'
+      ]
+    }, { status: 501 }); // 501 = Not Implemented
 
   } catch (error) {
-    console.error('❌ Error downloading file from SharePoint:');
+    console.error('❌ Error processing SharePoint request:');
     console.error('Error type:', typeof error);
     console.error('Error name:', error instanceof Error ? error.name : 'Unknown');
     console.error('Error message:', error instanceof Error ? error.message : 'No message');
     console.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace');
     
     return NextResponse.json({ 
-      error: 'Failed to download and process file from SharePoint',
+      error: 'Failed to process SharePoint request',
       details: error instanceof Error ? error.message : 'Unknown error'
     }, { status: 500 });
   }
-}
-
-// Simulate DOCX content based on file name
-function simulateDOCXContent(fileName: string): string {
-  const name = fileName.replace('.docx', '').replace(/[_-]/g, ' ');
-  return `
-CURRICULUM VITAE
-
-NOME E COGNOME: ${name}
-
-ESPERIENZA LAVORATIVA
-
-2022 - 2024 Senior ${name} presso Tech Solutions Inc.
-Sviluppo applicazioni web con React e Node.js
-Gestione team di sviluppo
-
-2020 - 2022 Junior Developer presso StartupXYZ
-Programmazione JavaScript e manutenzione database
-Collaborazione in progetti agili
-
-VOLONTARIATO
-
-2018 - 2020 Volontario presso Croce Rossa
-Assistenza nelle emergenze e supporto logistico
-
-FORMAZIONE
-
-2016 - 2019 Laurea in Informatica presso Università di Roma
-Corso di laurea triennale in Scienze Informatiche
-Tesi su intelligenza artificiale
-
-COMPETENZE
-
-JavaScript, React, Node.js, HTML, CSS, SQL, Git
-Teamwork, Problem Solving, Comunicazione
-Inglese avanzato, Tedesco base
-  `.trim();
-}
-
-function simulatePDFContent(fileName: string): string {
-  const name = fileName.replace('.pdf', '').replace(/[_-]/g, ' ');
-  return `
-CURRICULUM VITAE
-
-NOME E COGNOME: ${name}
-
-ESPERIENZA LAVORATIVA
-
-2022 - 2024 Senior ${name} presso Tech Solutions Inc.
-Sviluppo applicazioni web con React e Node.js
-
-2020 - 2022 Junior Developer presso StartupXYZ
-Programmazione JavaScript e manutenzione database
-
-VOLONTARIATO
-
-2018 - 2020 Volontario presso Croce Rossa
-Assistenza nelle emergenze e supporto logistico
-
-FORMAZIONE
-
-2016 - 2019 Laurea in Informatica presso Università di Roma
-Corso di laurea triennale in Scienze Informatiche
-
-COMPETENZE
-
-JavaScript, React, Node.js, HTML, CSS, SQL, Git
-Teamwork, Problem Solving, Comunicazione
-  `.trim();
-}
-
-// Simulate TXT content based on file name
-function simulateTXTContent(fileName: string): string {
-  const name = fileName.replace('.txt', '').replace(/[_-]/g, ' ');
-  return `
-Curriculum Vitae di ${name}
-
-Esperienza:
-- 2021-2024: Senior Developer presso TechCorp
-- 2019-2021: Software Engineer presso Innovate Ltd
-
-Istruzione:
-- 2015-2019: Laurea in Informatica, Università
-
-Competenze:
-- JavaScript, Python, React
-- Inglese avanzato
-- Lavoro di squadra
-  `.trim();
 }

@@ -24,6 +24,36 @@ export default function SharePointURLUpload({
     message: string;
   }>>([]);
 
+  const extractFileNameFromUrl = (url: string): string => {
+    try {
+      // Handle Forms/AllItems.aspx URLs - extract from 'id' parameter
+      if (url.includes('/Forms/AllItems.aspx')) {
+        const urlObj = new URL(url);
+        const idParam = urlObj.searchParams.get('id');
+        if (idParam) {
+          // Extract filename from the path
+          const fileName = decodeURIComponent(idParam.split('/').pop() || 'unknown.pdf');
+          return fileName;
+        }
+      }
+      
+      // Handle sharing links like :b:/g/ or :f:/g/
+      if (url.includes('/:b:/') || url.includes('/:f:/')) {
+        // For sharing links, we can't easily extract the filename
+        // Return a generic name and let the backend handle it
+        return 'SharePoint_Document.pdf';
+      }
+      
+      // Handle direct file URLs
+      const urlWithoutQuery = url.split('?')[0];
+      const fileName = decodeURIComponent(urlWithoutQuery.split('/').pop() || 'unknown.pdf');
+      return fileName;
+    } catch (error) {
+      console.error('Error extracting filename:', error);
+      return 'unknown.pdf';
+    }
+  };
+
   const validateSharePointUrl = (url: string): boolean => {
     try {
       const urlObj = new URL(url);
@@ -40,7 +70,8 @@ export default function SharePointURLUpload({
     total: number
   ): Promise<{ fileName: string; status: 'success' | 'failed'; message: string }> => {
     try {
-      const fileName = decodeURIComponent(url.split('/').pop() || 'unknown.pdf');
+      // Extract filename from various SharePoint URL formats
+      const fileName = extractFileNameFromUrl(url);
       setStatus(`Downloading ${index}/${total}: ${fileName}...`);
 
       // Download file from SharePoint via your backend
@@ -197,14 +228,36 @@ export default function SharePointURLUpload({
     <div className="border rounded-lg p-4 bg-yellow-50 border-yellow-200">
       <h3 className="text-lg font-semibold text-gray-900 mb-4">SharePoint URL Processing</h3>
       
+      {/* Warning Banner */}
+      <div className="mb-4 p-3 bg-orange-100 border border-orange-300 rounded-md">
+        <div className="flex items-start gap-2">
+          <svg className="w-5 h-5 text-orange-600 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+            <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+          </svg>
+          <div>
+            <p className="font-medium text-orange-900">Azure AD Setup Required</p>
+            <p className="text-sm text-orange-800 mt-1">
+              SharePoint URL processing requires Azure AD authentication with Microsoft Graph API permissions.
+              Please work with your admin to complete the setup before using this feature.
+            </p>
+          </div>
+        </div>
+      </div>
+      
       <div className="space-y-4">
         <div className="bg-blue-50 p-3 rounded-md">
           <h4 className="font-medium text-blue-900 mb-2">How to get SharePoint file URLs:</h4>
           <ol className="list-decimal list-inside text-sm text-blue-800 space-y-1">
             <li>Go to your SharePoint document library</li>
-            <li>Right-click on a CV file</li>
-            <li>Select "Copy link" or "Get link"</li>
+            <li>Right-click on a CV file and select "Copy link" or "Share"</li>
             <li>Paste the URL(s) below (one per line)</li>
+            <li>Supported URL formats:
+              <ul className="ml-6 mt-1 list-disc space-y-0.5">
+                <li>Direct file links: <code className="text-xs bg-blue-100 px-1 rounded">https://.../*.pdf</code></li>
+                <li>Sharing links: <code className="text-xs bg-blue-100 px-1 rounded">https://.../:b:/g/...</code></li>
+                <li>Forms URLs: <code className="text-xs bg-blue-100 px-1 rounded">https://...AllItems.aspx?id=...</code></li>
+              </ul>
+            </li>
             <li>Make sure you have permission to access the files</li>
           </ol>
         </div>
@@ -216,7 +269,10 @@ export default function SharePointURLUpload({
           <textarea
             value={sharePointUrls}
             onChange={(e) => setSharePointUrls(e.target.value)}
-            placeholder="https://yourcompany.sharepoint.com/sites/hr/Shared%20Documents/CVs/cv1.pdf"
+            placeholder="Paste SharePoint URLs here (one per line):
+https://yourcompany.sharepoint.com/:b:/g/...
+https://yourcompany.sharepoint.com/.../document.pdf
+https://yourcompany.sharepoint.com/Forms/AllItems.aspx?id=..."
             className="w-full h-32 px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm font-mono"
             disabled={isProcessing}
           />
@@ -279,13 +335,12 @@ export default function SharePointURLUpload({
         )}
 
         <div className="text-xs text-gray-500 bg-gray-50 p-3 rounded">
-          <p className="font-medium mb-2">Requirements:</p>
+          <p className="font-medium mb-2">Setup Requirements:</p>
           <ul className="list-disc list-inside space-y-1">
-            <li>SharePoint URLs must be from sharepoint.com or onedrive.com domains</li>
-            <li>Your account must have read access to the files</li>
-            <li>Backend will process files through existing upload pipeline</li>
-            <li>PDF and DOCX files will be automatically parsed</li>
-            <li>Results will appear in the main CV analysis results</li>
+            <li>Azure AD app registration with your admin</li>
+            <li>Microsoft Graph API permissions (Files.Read.All)</li>
+            <li>Environment variables configured (AZURE_CLIENT_ID, SHAREPOINT_SITE_URL)</li>
+            <li><strong>Alternative:</strong> Download files manually from SharePoint and use the regular file upload above</li>
           </ul>
         </div>
       </div>
