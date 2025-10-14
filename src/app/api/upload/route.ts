@@ -181,13 +181,24 @@ export async function POST(request: NextRequest) {
           }, { status: 400 });
         }
         
-        // Combine all extracted text
-        extractedText = extractedFiles.map(f => 
-          `=== ${f.name} ===\n${f.content}\n\n`
-        ).join('');
-        
         console.log(`✅ ZIP processed successfully - ${extractedFiles.length} files extracted`);
-        console.log(`📏 Total text length: ${extractedText.length} characters`);
+        
+        // Return array of individual files instead of combined text
+        return NextResponse.json({
+          success: true,
+          isZipArchive: true,
+          fileName: file.name,
+          fileCount: extractedFiles.length,
+          files: extractedFiles.map(f => ({
+            fileName: f.name,
+            fileSize: f.content.length,
+            fileType: f.name.toLowerCase().endsWith('.pdf') ? 'application/pdf' : 
+                     f.name.toLowerCase().endsWith('.docx') ? 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' : 
+                     'text/plain',
+            extractedText: f.content
+          })),
+          uploadedAt: new Date().toISOString()
+        });
         
       } catch (zipError) {
         console.error('❌ ZIP processing error:', zipError);

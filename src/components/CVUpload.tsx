@@ -167,7 +167,70 @@ export default function CVUpload({ jobRequirements, onCVUpload, onCVAnalyzed }: 
 
       const uploadData: UploadResponse = await uploadResponse.json();
 
-      // Create CV data object
+      // Check if this is a ZIP archive with multiple files
+      if (uploadData.isZipArchive && uploadData.files && Array.isArray(uploadData.files)) {
+        console.log(`📦 ZIP archive contains ${uploadData.files.length} files`);
+        updateFileStatus('analyzing');
+        
+        // Process each file from the ZIP individually
+        let processedCount = 0;
+        let failedCount = 0;
+        
+        for (const zipFile of uploadData.files) {
+          try {
+            // Create CV data object for each file in ZIP
+            const cvData: CVData = {
+              id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
+              fileName: zipFile.fileName,
+              fileSize: zipFile.fileSize,
+              fileType: zipFile.fileType,
+              extractedText: zipFile.extractedText,
+              uploadedAt: uploadData.uploadedAt
+            };
+
+            onCVUpload(cvData);
+            
+            // Analyze each CV
+            const analysisResponse = await fetch('/api/analyze', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({
+                cvText: zipFile.extractedText,
+                jobRequirements
+              })
+            });
+
+            if (!analysisResponse.ok) {
+              console.error(`Analysis failed for ${zipFile.fileName}`);
+              failedCount++;
+              continue;
+            }
+
+            const analysisData: AnalysisResponse = await analysisResponse.json();
+
+            // Update CV with analysis
+            const analyzedCV: CVData = {
+              ...cvData,
+              analysis: analysisData.analysis
+            };
+
+            onCVAnalyzed(analyzedCV);
+            processedCount++;
+            
+          } catch (fileError) {
+            console.error(`Error processing ${zipFile.fileName} from ZIP:`, fileError);
+            failedCount++;
+          }
+        }
+        
+        console.log(`✅ ZIP processing complete: ${processedCount} succeeded, ${failedCount} failed`);
+        updateFileStatus('completed');
+        return;
+      }
+
+      // Handle single file (non-ZIP)
       const cvData: CVData = {
         id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
         fileName: uploadData.fileName,

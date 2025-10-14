@@ -62,6 +62,15 @@ export interface UploadResponse {
   fileType: string;
   extractedText: string;
   uploadedAt: string;
+  // ZIP archive properties
+  isZipArchive?: boolean;
+  fileCount?: number;
+  files?: Array<{
+    fileName: string;
+    fileSize: number;
+    fileType: string;
+    extractedText: string;
+  }>;
 }
 
 export interface AnalysisResponse {
