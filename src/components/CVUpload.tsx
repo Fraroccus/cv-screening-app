@@ -35,7 +35,7 @@ export default function CVUpload({ jobRequirements, onCVUpload, onCVAnalyzed }: 
 
       setGlobalStatus('Opening folder picker...');
       
-      // @ts-ignore - showDirectoryPicker is not in TypeScript types yet
+      // @ts-expect-error - showDirectoryPicker is not in TypeScript types yet
       const directoryHandle = await window.showDirectoryPicker();
       
       setGlobalStatus('Scanning folder for CV files...');
