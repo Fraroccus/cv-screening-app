@@ -24,6 +24,68 @@ export default function CVUpload({ jobRequirements, onCVUpload, onCVAnalyzed }: 
   const [globalStatus, setGlobalStatus] = useState<string>('');
   const [isProcessing, setIsProcessing] = useState(false);
 
+  // Handler for folder selection
+  const handleFolderSelect = async () => {
+    try {
+      // Check if browser supports the File System Access API
+      if (!('showDirectoryPicker' in window)) {
+        alert('Folder selection is not supported in your browser. Please use Chrome, Edge, or Opera (latest versions), or upload a ZIP file instead.');
+        return;
+      }
+
+      setGlobalStatus('Opening folder picker...');
+      
+      // @ts-ignore - showDirectoryPicker is not in TypeScript types yet
+      const directoryHandle = await window.showDirectoryPicker();
+      
+      setGlobalStatus('Scanning folder for CV files...');
+      const files: File[] = [];
+      
+      // Recursively collect all supported files from the directory
+      await collectFilesFromDirectory(directoryHandle, files);
+      
+      if (files.length === 0) {
+        setGlobalStatus('No supported CV files found in the selected folder (looking for PDF, DOCX, TXT).');
+        setTimeout(() => setGlobalStatus(''), 5000);
+        return;
+      }
+      
+      setGlobalStatus(`Found ${files.length} CV file${files.length > 1 ? 's' : ''}. Starting processing...`);
+      
+      // Process the collected files using the existing onDrop handler
+      await onDrop(files);
+      
+    } catch (error) {
+      if ((error as Error).name === 'AbortError') {
+        setGlobalStatus('Folder selection cancelled.');
+      } else {
+        console.error('Error selecting folder:', error);
+        setGlobalStatus(`Error: ${error instanceof Error ? error.message : 'Failed to select folder'}`);
+      }
+      setTimeout(() => setGlobalStatus(''), 5000);
+    }
+  };
+
+  // Recursively collect files from directory and subdirectories
+  const collectFilesFromDirectory = async (directoryHandle: any, files: File[]) => {
+    const supportedExtensions = ['.pdf', '.docx', '.txt'];
+    
+    for await (const entry of directoryHandle.values()) {
+      if (entry.kind === 'file') {
+        const file = await entry.getFile();
+        const fileName = file.name.toLowerCase();
+        
+        // Check if file has a supported extension
+        if (supportedExtensions.some(ext => fileName.endsWith(ext))) {
+          files.push(file);
+        }
+      } else if (entry.kind === 'directory') {
+        // Recursively process subdirectories
+        await collectFilesFromDirectory(entry, files);
+      }
+    }
+  };
+
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
     if (acceptedFiles.length > 1000) {
       setGlobalStatus('Troppi file! Seleziona fino a 1000 CV alla volta.');
@@ -360,6 +422,31 @@ export default function CVUpload({ jobRequirements, onCVUpload, onCVAnalyzed }: 
         </div>
       </div>
 
+      {/* Folder Selection Button */}
+      <div className="mt-4 flex justify-center">
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            handleFolderSelect();
+          }}
+          disabled={isProcessing}
+          className="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 shadow-sm transition-colors"
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+          </svg>
+          <span className="font-medium">Or Select Entire Folder</span>
+        </button>
+      </div>
+      
+      <div className="mt-2 text-center">
+        <p className="text-xs text-gray-500">
+          Folder selection works in Chrome, Edge, and Opera. 
+          <br />
+          All PDF, DOCX, and TXT files will be automatically extracted from the folder and subfolders.
+        </p>
+      </div>
+
       {/* Status Messages and Progress */}
       {(isProcessing || globalStatus || processingFiles.length > 0) && (
         <div className="mt-4 space-y-4">
@@ -431,12 +518,13 @@ export default function CVUpload({ jobRequirements, onCVUpload, onCVAnalyzed }: 
       <div className="mt-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
         <h4 className="font-medium text-yellow-800 mb-2">Suggerimenti per l'elaborazione di massa dei CV:</h4>
         <ul className="text-sm text-yellow-700 space-y-1">
-          <li>• Carica fino a 1000 CV alla volta per una selezione efficiente di massa</li>
-          <li>• Assicurati che i file CV siano chiari e ben formattati (i file PDF devono avere testo selezionabile, i file DOCX devono essere validi, i file ZIP devono contenere documenti supportati)</li>
+          <li>• <strong>Seleziona Cartella Intera:</strong> Usa il pulsante verde per selezionare una cartella - tutti i CV verranno automaticamente estratti</li>
+          <li>• <strong>Upload ZIP:</strong> Carica file ZIP contenenti fino a 1000 CV - verranno estratti automaticamente</li>
+          <li>• <strong>Selezione File Multipli:</strong> Clicca o trascina fino a 1000 file PDF, DOCX o TXT</li>
+          <li>• Assicurati che i file CV siano chiari e ben formattati (i file PDF devono avere testo selezionabile)</li>
           <li>• I file vengono elaborati in lotti di 5 per ottimizzare le prestazioni</li>
           <li>• Usa le opzioni di filtro avanzate nei Risultati per trovare candidati specifici</li>
           <li>• L'IA valuterà e classificherà automaticamente tutti i candidati in base ai tuoi requisiti</li>
-          <li>• Connettiti a SharePoint per accedere direttamente ai CV archiviati senza caricamenti manuali</li>
         </ul>
       </div>
     </div>
