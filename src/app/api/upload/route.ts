@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import * as mammoth from 'mammoth';
 import JSZip from 'jszip';
+import { uploadRateLimiter, getClientIp } from '@/lib/rate-limit';
 
 // Increase the maximum execution time for batch processing
 export const maxDuration = 300; // 5 minutes for large batch uploads
@@ -19,6 +20,35 @@ export async function POST(request: NextRequest) {
   console.log('📋 Request headers:', Object.fromEntries(request.headers.entries()));
   console.log('📍 Request URL:', request.url);
   console.log('🔧 Request method:', request.method);
+  
+  // Rate limiting check
+  const clientIp = getClientIp(request);
+  const rateLimitResult = uploadRateLimiter.check(clientIp);
+  
+  // Add rate limit headers to all responses
+  const rateLimitHeaders = {
+    'X-RateLimit-Limit': rateLimitResult.limit.toString(),
+    'X-RateLimit-Remaining': rateLimitResult.remaining.toString(),
+    'X-RateLimit-Reset': new Date(rateLimitResult.resetTime).toISOString(),
+  };
+  
+  if (!rateLimitResult.allowed) {
+    console.log(`⚠️ Rate limit exceeded for IP: ${clientIp}`);
+    const resetDate = new Date(rateLimitResult.resetTime);
+    const resetMinutes = Math.ceil((rateLimitResult.resetTime - Date.now()) / 60000);
+    
+    return NextResponse.json({
+      error: 'Limite di richieste superato',
+      message: `Hai superato il limite di ${rateLimitResult.limit} caricamenti ogni 10 minuti. Riprova tra ${resetMinutes} minuti.`,
+      resetAt: resetDate.toISOString(),
+      resetIn: `${resetMinutes} minuti`
+    }, { 
+      status: 429,
+      headers: rateLimitHeaders
+    });
+  }
+  
+  console.log(`✅ Rate limit OK for IP ${clientIp}: ${rateLimitResult.remaining} requests remaining`);
   
   try {
     console.log('🔄 Processing upload request...');
@@ -198,6 +228,8 @@ export async function POST(request: NextRequest) {
             extractedText: f.content
           })),
           uploadedAt: new Date().toISOString()
+        }, {
+          headers: rateLimitHeaders
         });
         
       } catch (zipError) {
@@ -271,6 +303,8 @@ export async function POST(request: NextRequest) {
       fileType: file.type,
       extractedText: extractedText,
       uploadedAt: new Date().toISOString()
+    }, {
+      headers: rateLimitHeaders
     });
 
   } catch (error) {

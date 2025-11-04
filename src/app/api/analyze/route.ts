@@ -3,6 +3,7 @@ import * as pdfParse from "pdf-parse";
 import * as mammoth from "mammoth";
 import JSZip from "jszip";
 import { JobRequirements, CVAnalysis } from "@/types";
+import { analyzeRateLimiter, getClientIp } from "@/lib/rate-limit";
 
 interface WorkPeriod {
   text: string;
@@ -1155,6 +1156,33 @@ function generateStrengthsWeaknesses(skillsAnalysis: any, experienceAnalysis: an
 }
 
 export async function POST(request: NextRequest) {
+  // Rate limiting check
+  const clientIp = getClientIp(request);
+  const rateLimitResult = analyzeRateLimiter.check(clientIp);
+  
+  // Add rate limit headers to all responses
+  const rateLimitHeaders = {
+    'X-RateLimit-Limit': rateLimitResult.limit.toString(),
+    'X-RateLimit-Remaining': rateLimitResult.remaining.toString(),
+    'X-RateLimit-Reset': new Date(rateLimitResult.resetTime).toISOString(),
+  };
+  
+  if (!rateLimitResult.allowed) {
+    console.log(`⚠️ Rate limit exceeded for IP: ${clientIp}`);
+    const resetDate = new Date(rateLimitResult.resetTime);
+    const resetMinutes = Math.ceil((rateLimitResult.resetTime - Date.now()) / 60000);
+    
+    return NextResponse.json({
+      error: 'Limite di richieste superato',
+      message: `Hai superato il limite di ${rateLimitResult.limit} analisi ogni 10 minuti. Riprova tra ${resetMinutes} minuti.`,
+      resetAt: resetDate.toISOString(),
+      resetIn: `${resetMinutes} minuti`
+    }, { 
+      status: 429,
+      headers: rateLimitHeaders
+    });
+  }
+  
   try {
     const contentType = request.headers.get('content-type');
     
@@ -1178,7 +1206,9 @@ export async function POST(request: NextRequest) {
         text: cvText
       };
       
-      return NextResponse.json(response);
+      return NextResponse.json(response, {
+        headers: rateLimitHeaders
+      });
     }
     
     // Handle file uploads (multipart/form-data)
@@ -1258,7 +1288,9 @@ export async function POST(request: NextRequest) {
           text: cvText
         };
         
-        return NextResponse.json(response);
+        return NextResponse.json(response, {
+          headers: rateLimitHeaders
+        });
       } catch (parseError) {
         console.error('File parsing error:', parseError);
         let errorMessage = 'Failed to parse file. Please ensure it is a valid document.';
