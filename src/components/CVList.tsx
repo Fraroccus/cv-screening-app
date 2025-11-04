@@ -213,6 +213,23 @@ export default function CVList({ cvs, jobRequirements }: CVListProps) {
         )}
       </div>
 
+      {/* Security Notice */}
+      {analyzedCVs.length > 0 && (
+        <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg">
+          <div className="flex items-start gap-2">
+            <svg className="w-5 h-5 text-green-600 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M2.166 4.999A11.954 11.954 0 0010 1.944 11.954 11.954 0 0017.834 5c.11.65.166 1.32.166 2.001 0 5.225-3.34 9.67-8 11.317C5.34 16.67 2 12.225 2 7c0-.682.057-1.35.166-2.001zm11.541 3.708a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+            </svg>
+            <div className="flex-1">
+              <p className="text-sm font-medium text-green-800">🔒 Sicurezza dei Dati Attiva</p>
+              <p className="text-xs text-green-700 mt-1">
+                I dati dei CV vengono automaticamente cancellati dalla memoria quando chiudi o ricarichi questa pagina.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Filters and Sorting */}
       {analyzedCVs.length > 0 && (
         <div className="mb-6 space-y-4">

@@ -78,3 +78,10 @@ export interface AnalysisResponse {
   analysis: CVAnalysis;
   analyzedAt: string;
 }
+
+// Extend Window interface for garbage collection
+declare global {
+  interface Window {
+    gc?: () => void;
+  }
+}

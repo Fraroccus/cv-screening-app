@@ -1,5 +1,14 @@
 import CVScreeningApp from '@/components/CVScreeningApp';
 
+/**
+ * CV Screening Application - Home Page
+ * 
+ * Security Features:
+ * - Automatic data clearing on page unload/reload (CVScreeningApp)
+ * - No server-side storage of CV content
+ * - In-memory processing only
+ * - Sensitive data marked with data-sensitive attribute for DOM clearing
+ */
 export default function Home() {
   return (
     <div className="min-h-screen bg-gray-50">

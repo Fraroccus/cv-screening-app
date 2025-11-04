@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { JobRequirements, CVData } from '@/types';
 import JobRequirementsForm from './JobRequirementsForm';
 import CVUpload from './CVUpload';
@@ -22,6 +22,55 @@ export default function CVScreeningApp() {
     }
   });
   const [cvs, setCVs] = useState<CVData[]>([]);
+
+  // Automatic data clearing on page unload/reload
+  useEffect(() => {
+    const clearSensitiveData = () => {
+      console.log('🧹 Clearing sensitive CV data from memory...');
+      
+      // Clear all CV data including extracted text
+      setCVs([]);
+      
+      // Clear any text content from DOM
+      const sensitiveElements = document.querySelectorAll('[data-sensitive="true"]');
+      sensitiveElements.forEach(element => {
+        if (element instanceof HTMLElement) {
+          element.textContent = '';
+        }
+      });
+      
+      // Force garbage collection hint
+      if (window.gc) {
+        window.gc();
+      }
+      
+      console.log('✅ CV data cleared successfully');
+    };
+
+    // Clear data when page is being unloaded
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      clearSensitiveData();
+      // Note: Modern browsers ignore custom messages, but we call clearSensitiveData anyway
+    };
+
+    // Clear data when user navigates away
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'hidden') {
+        clearSensitiveData();
+      }
+    };
+
+    // Attach event listeners
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    // Cleanup function when component unmounts
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      clearSensitiveData();
+    };
+  }, []);
 
   const handleJobRequirementsSubmit = (requirements: JobRequirements) => {
     setJobRequirements(requirements);
