@@ -82,9 +82,23 @@ export default function JobRequirementsForm({ initialRequirements, onSubmit }: J
 
   return (
     <div className="p-6">
-      <h2 className="text-xl font-semibold text-gray-900 mb-6">
-        Definisci i Requisiti del Lavoro
-      </h2>
+      <div className="flex items-center justify-between mb-6">
+        <h2 className="text-xl font-semibold text-gray-900">
+          Definisci i Requisiti del Lavoro
+        </h2>
+        
+        {/* Download Guide Button */}
+        <a
+          href="/GUIDA STRUMENTO CV.pdf"
+          download="Guida Strumento CV.pdf"
+          className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 focus:ring-2 focus:ring-green-500 focus:ring-offset-2 flex items-center gap-2 transition-colors"
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+          </svg>
+          <span className="font-medium">Scarica Guida</span>
+        </a>
+      </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Position Title */}
