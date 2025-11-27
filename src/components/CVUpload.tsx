@@ -462,15 +462,15 @@ export default function CVUpload({ jobRequirements, onCVUpload, onCVAnalyzed }: 
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
           </svg>
-          <span className="font-medium">Or Select Entire Folder</span>
+          <span className="font-medium">Oppure Seleziona Intera Cartella</span>
         </button>
       </div>
       
       <div className="mt-2 text-center">
         <p className="text-xs text-gray-500">
-          Folder selection works in Chrome, Edge, and Opera. 
+          La selezione cartella funziona in Chrome, Edge e Opera. 
           <br />
-          All PDF, DOCX, and TXT files will be automatically extracted from the folder and subfolders.
+          Tutti i file PDF, DOCX e TXT verranno automaticamente estratti dalla cartella e sottocartelle.
         </p>
       </div>
 
