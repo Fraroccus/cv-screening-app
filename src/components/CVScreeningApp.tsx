@@ -47,27 +47,17 @@ export default function CVScreeningApp() {
       console.log('✅ CV data cleared successfully');
     };
 
-    // Clear data when page is being unloaded
+    // Clear data when page is being unloaded (close or reload)
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
       clearSensitiveData();
-      // Note: Modern browsers ignore custom messages, but we call clearSensitiveData anyway
     };
 
-    // Clear data when user navigates away
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'hidden') {
-        clearSensitiveData();
-      }
-    };
-
-    // Attach event listeners
+    // Attach event listener only for actual page unload
     window.addEventListener('beforeunload', handleBeforeUnload);
-    document.addEventListener('visibilitychange', handleVisibilityChange);
 
     // Cleanup function when component unmounts
     return () => {
       window.removeEventListener('beforeunload', handleBeforeUnload);
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
       clearSensitiveData();
     };
   }, []);

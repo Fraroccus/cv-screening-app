@@ -223,7 +223,7 @@ export default function CVList({ cvs, jobRequirements }: CVListProps) {
             <div className="flex-1">
               <p className="text-sm font-medium text-green-800">🔒 Sicurezza dei Dati Attiva</p>
               <p className="text-xs text-green-700 mt-1">
-                I dati dei CV vengono automaticamente cancellati dalla memoria quando chiudi o ricarichi questa pagina.
+                I dati dei CV vengono automaticamente cancellati dalla memoria quando chiudi o ricarichi questa pagina. Puoi scaricare il CSV e aprirlo senza perdere i dati.
               </p>
             </div>
           </div>
